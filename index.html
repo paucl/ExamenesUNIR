@@ -178,6 +178,20 @@
   .option-btn.disabled{pointer-events:none;}
   .option-letter{font-weight:700;margin-right:10px;color:var(--text-dim);flex-shrink:0;}
 
+  .option-btn.multi{align-items:flex-start;}
+  .option-checkbox{
+    width:22px;height:22px;border-radius:6px;border:2px solid var(--text-dim);
+    margin-right:10px;flex-shrink:0;margin-top:1px;
+    display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#fff;
+    transition:border-color .15s, background .15s;
+  }
+  .option-btn.multi.selected .option-checkbox{background:var(--primary);border-color:var(--primary);}
+  .option-btn.multi.selected{border-color:var(--primary);}
+  .option-btn.multi.correct .option-checkbox{background:var(--success);border-color:var(--success);}
+  .option-btn.multi.incorrect .option-checkbox{background:var(--danger);border-color:var(--danger);}
+  .option-btn.multi.missed{border-color:var(--success);border-style:dashed;}
+  .multi-hint{font-size:0.8rem;color:var(--text-dim);margin:-4px 0 2px;}
+
   .feedback{
     display:flex;align-items:center;gap:8px;
     font-weight:700;font-size:1rem;
@@ -260,6 +274,7 @@
 
     <div class="feedback" id="quiz-feedback" style="display:none;"></div>
 
+    <button class="btn btn-primary btn-block" id="btn-check-multi" style="display:none;" disabled>Comprobar respuesta</button>
     <button class="btn btn-primary btn-block" id="btn-next-question" style="display:none;">Siguiente →</button>
     <button class="back-link" data-nav="home" style="align-self:center;">Salir al inicio</button>
   </div>
@@ -296,7 +311,7 @@
   var stats = loadStats();
 
   var setup = { subject: "AANS", mode: "practice", examFilter: null };
-  var quiz = { questions: [], index: 0, ok: 0, bad: 0, answered: false };
+  var quiz = { questions: [], index: 0, ok: 0, bad: 0, answered: false, selected: [] };
 
   // ---------- persistence ----------
   function loadStats(){
@@ -388,16 +403,21 @@
     return qs.filter(function(q){ return peekQStat(subject,q.id).dominated; }).length;
   }
 
+  function correctIndices(q){
+    return Array.isArray(q.correct) ? q.correct : [q.correct];
+  }
+
   function buildRuntimeQuestion(subject, q){
-    var letters = ["A","B","C","D"];
-    var optionObjs = q.options.map(function(text, idx){ return { text: text, isCorrect: idx === q.correct }; });
+    var correctSet = correctIndices(q);
+    var optionObjs = q.options.map(function(text, idx){ return { text: text, isCorrect: correctSet.indexOf(idx) !== -1 }; });
     var shuffled = shuffle(optionObjs);
     return {
       subject: subject,
       id: q.id,
       exam: q.exam,
       questionText: q.question,
-      options: shuffled
+      options: shuffled,
+      multi: correctSet.length > 1
     };
   }
 
@@ -590,10 +610,13 @@
     renderQuestion();
   }
 
+  var LETTERS = ["A","B","C","D","E","F"];
+
   function renderQuestion(){
     var total = quiz.questions.length;
     var current = quiz.questions[quiz.index];
     quiz.answered = false;
+    quiz.selected = [];
 
     document.getElementById("quiz-progress-text").textContent = "Pregunta " + (quiz.index+1) + "/" + total;
     document.getElementById("quiz-progress-fill").style.width = Math.round(((quiz.index)/total)*100) + "%";
@@ -607,21 +630,85 @@
     var rest = parts.slice(1).join("\n\n");
     var html = '<p class="q-prompt">' + escapeHtml(prompt) + '</p>';
     if(rest){ html += '<pre class="q-code">' + escapeHtml(rest) + '</pre>'; }
+    if(current.multi){ html += '<p class="multi-hint">Selecciona todas las opciones correctas.</p>'; }
     qTextEl.innerHTML = html;
 
     var optionsEl = document.getElementById("quiz-options");
     optionsEl.innerHTML = "";
-    var letters = ["A","B","C","D"];
     current.options.forEach(function(opt, idx){
       var btn = document.createElement("button");
-      btn.className = "option-btn";
-      btn.innerHTML = '<span class="option-letter">'+letters[idx]+'</span><span>'+escapeHtml(opt.text)+'</span>';
-      btn.addEventListener("click", function(){ handleAnswer(opt, btn); });
+      btn.className = current.multi ? "option-btn multi" : "option-btn";
+      var indicator = current.multi ? '<span class="option-checkbox"></span>' : '<span class="option-letter">'+LETTERS[idx]+'</span>';
+      btn.innerHTML = indicator + '<span>'+escapeHtml(opt.text)+'</span>';
+      if(current.multi){
+        btn.addEventListener("click", function(){ toggleMultiOption(idx, btn); });
+      } else {
+        btn.addEventListener("click", function(){ handleAnswer(opt, btn); });
+      }
       optionsEl.appendChild(btn);
     });
 
     document.getElementById("quiz-feedback").style.display = "none";
     document.getElementById("btn-next-question").style.display = "none";
+    var checkBtn = document.getElementById("btn-check-multi");
+    if(current.multi){
+      checkBtn.style.display = "flex";
+      checkBtn.disabled = true;
+    } else {
+      checkBtn.style.display = "none";
+    }
+  }
+
+  function toggleMultiOption(idx, btnEl){
+    if(quiz.answered) return;
+    var pos = quiz.selected.indexOf(idx);
+    if(pos === -1){ quiz.selected.push(idx); btnEl.classList.add("selected"); }
+    else { quiz.selected.splice(pos, 1); btnEl.classList.remove("selected"); }
+    document.getElementById("btn-check-multi").disabled = quiz.selected.length === 0;
+  }
+
+  document.getElementById("btn-check-multi").addEventListener("click", function(){
+    handleMultiSubmit();
+  });
+
+  function handleMultiSubmit(){
+    if(quiz.answered) return;
+    quiz.answered = true;
+
+    var current = quiz.questions[quiz.index];
+    var selectedSet = quiz.selected.slice().sort();
+    var correctIdx = [];
+    current.options.forEach(function(opt, idx){ if(opt.isCorrect) correctIdx.push(idx); });
+    correctIdx.sort();
+    var exactMatch = selectedSet.length === correctIdx.length && selectedSet.every(function(v, i){ return v === correctIdx[i]; });
+
+    if(exactMatch){ quiz.ok++; } else { quiz.bad++; }
+    recordAnswer(current.subject, current.id, exactMatch);
+    updateScorePill();
+
+    var allBtns = document.querySelectorAll("#quiz-options .option-btn");
+    allBtns.forEach(function(b, idx){
+      b.classList.add("disabled");
+      var wasSelected = quiz.selected.indexOf(idx) !== -1;
+      var isCorrect = current.options[idx].isCorrect;
+      if(isCorrect && wasSelected){ b.classList.add("correct"); }
+      else if(isCorrect && !wasSelected){ b.classList.add("missed"); }
+      else if(!isCorrect && wasSelected){ b.classList.add("incorrect"); }
+    });
+
+    var fb = document.getElementById("quiz-feedback");
+    fb.style.display = "flex";
+    if(exactMatch){
+      fb.className = "feedback correct";
+      fb.textContent = "✔ ¡Correcto!";
+    } else {
+      var correctLetters = correctIdx.map(function(i){ return LETTERS[i]; }).join(", ");
+      fb.className = "feedback incorrect";
+      fb.textContent = "✘ Incorrecto. Las opciones correctas eran: " + correctLetters;
+    }
+
+    document.getElementById("btn-check-multi").style.display = "none";
+    document.getElementById("btn-next-question").style.display = "flex";
   }
 
   function updateScorePill(){
