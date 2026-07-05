@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Repaso de Exámenes UNIR</title>
+<style>
+  :root{
+    --bg: #0f1220;
+    --bg-elevated: #1a1e33;
+    --card: #20253f;
+    --text: #f1f2f6;
+    --text-dim: #a3a8c3;
+    --primary: #6c7bff;
+    --primary-dark: #4d5ce0;
+    --success: #22c55e;
+    --success-bg: rgba(34,197,94,0.15);
+    --danger: #ef4444;
+    --danger-bg: rgba(239,68,68,0.15);
+    --border: #2e3455;
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg: #f4f5fb;
+      --bg-elevated: #ffffff;
+      --card: #ffffff;
+      --text: #1a1c2b;
+      --text-dim: #5c6080;
+      --border: #e1e3f0;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    min-height:100%;
+  }
+  #app{
+    max-width:640px;
+    margin:0 auto;
+    padding:16px;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom));
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  .screen{display:none;flex-direction:column;gap:16px;flex:1;}
+  .screen.active{display:flex;}
+
+  h1{font-size:1.5rem;margin:8px 0 0;text-align:center;}
+  h2{font-size:1.15rem;margin:0;}
+  p.subtitle{color:var(--text-dim);text-align:center;margin:0 0 8px;font-size:0.95rem;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px;
+  }
+
+  .subject-grid{display:flex;flex-direction:column;gap:12px;}
+  .subject-btn{
+    display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+    background:var(--card);
+    border:2px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    color:var(--text);
+    font-size:1.05rem;
+    font-weight:600;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s, transform .1s;
+  }
+  .subject-btn:active{transform:scale(0.98);}
+  .subject-btn:hover{border-color:var(--primary);}
+  .subject-btn small{color:var(--text-dim);font-weight:400;font-size:0.85rem;}
+  .subject-btn[disabled]{opacity:0.45;cursor:not-allowed;}
+  .subject-btn[disabled]:hover{border-color:var(--border);}
+
+  .btn{
+    display:flex;align-items:center;justify-content:center;
+    min-height:56px;
+    border-radius:14px;
+    border:none;
+    font-size:1.05rem;
+    font-weight:600;
+    cursor:pointer;
+    padding:12px 18px;
+    transition:transform .1s, opacity .15s;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn-secondary{background:var(--bg-elevated);color:var(--text);border:1px solid var(--border);}
+  .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);}
+  .btn-block{width:100%;}
+  .btn-row{display:flex;gap:10px;}
+  .btn-row .btn{flex:1;}
+
+  .back-link{
+    background:none;border:none;color:var(--text-dim);font-size:0.95rem;
+    display:flex;align-items:center;gap:4px;cursor:pointer;padding:8px 0;align-self:flex-start;
+  }
+
+  .checkbox-list{display:flex;flex-direction:column;gap:8px;}
+  .checkbox-row{
+    display:flex;align-items:center;gap:10px;
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+  }
+  .checkbox-row input{width:20px;height:20px;flex-shrink:0;}
+  .checkbox-row label{flex:1;font-size:0.95rem;}
+
+  .stats-row{display:flex;justify-content:space-between;font-size:0.9rem;color:var(--text-dim);padding:4px 0;}
+  .stats-row b{color:var(--text);}
+
+  .mode-option{
+    border:2px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    cursor:pointer;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .mode-option.selected{border-color:var(--primary);background:rgba(108,123,255,0.08);}
+  .mode-option[disabled],.mode-option.disabled{opacity:0.4;cursor:not-allowed;}
+  .mode-option strong{font-size:1rem;}
+  .mode-option span{font-size:0.85rem;color:var(--text-dim);}
+
+  /* Quiz screen */
+  .quiz-header{display:flex;justify-content:space-between;align-items:center;font-size:0.9rem;color:var(--text-dim);}
+  .progress-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;}
+  .progress-bar-fill{height:100%;background:var(--primary);transition:width .2s;}
+  .score-pill{display:flex;gap:10px;font-size:0.85rem;}
+  .score-pill .ok{color:var(--success);}
+  .score-pill .bad{color:var(--danger);}
+
+  .question-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+  .q-tag{font-size:0.75rem;color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px;display:block;}
+  .q-prompt{font-size:1.1rem;line-height:1.45;margin:0 0 4px;white-space:pre-wrap;}
+  .q-code{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    font-family:"SF Mono",Consolas,Menlo,monospace;
+    font-size:0.82rem;
+    overflow-x:auto;
+    white-space:pre;
+    color:var(--text);
+    margin-top:8px;
+  }
+
+  .options{display:flex;flex-direction:column;gap:10px;}
+  .option-btn{
+    text-align:left;
+    background:var(--bg-elevated);
+    border:2px solid var(--border);
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:1rem;
+    color:var(--text);
+    cursor:pointer;
+    line-height:1.35;
+    min-height:52px;
+    display:flex;align-items:center;
+    transition:border-color .15s, background .15s;
+  }
+  .option-btn:active{transform:scale(0.99);}
+  .option-btn.correct{border-color:var(--success);background:var(--success-bg);}
+  .option-btn.incorrect{border-color:var(--danger);background:var(--danger-bg);}
+  .option-btn.disabled{pointer-events:none;}
+  .option-letter{font-weight:700;margin-right:10px;color:var(--text-dim);flex-shrink:0;}
+
+  .feedback{
+    display:flex;align-items:center;gap:8px;
+    font-weight:700;font-size:1rem;
+    padding:12px 14px;border-radius:12px;
+  }
+  .feedback.correct{background:var(--success-bg);color:var(--success);}
+  .feedback.incorrect{background:var(--danger-bg);color:var(--danger);}
+
+  .empty-state{color:var(--text-dim);text-align:center;padding:24px 8px;font-size:0.95rem;}
+
+  footer.tabbar{
+    display:flex;justify-content:center;gap:8px;padding-top:8px;
+  }
+  .link-btn{background:none;border:none;color:var(--text-dim);font-size:0.85rem;text-decoration:underline;cursor:pointer;padding:6px;}
+
+  @media (min-width:520px){
+    .btn{font-size:1.05rem;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <h1>📚 Repaso de Exámenes</h1>
+    <p class="subtitle">Elige la asignatura con la que quieres practicar</p>
+    <div class="subject-grid" id="home-subject-grid"></div>
+    <div class="card" id="home-stats-summary"></div>
+    <button class="link-btn" id="btn-goto-manage-stats">Gestionar estadísticas / reiniciar progreso</button>
+  </div>
+
+  <!-- SETUP -->
+  <div class="screen" id="screen-setup">
+    <button class="back-link" data-nav="home">← Volver</button>
+    <h1 id="setup-title">AANS</h1>
+
+    <div class="card" id="setup-exam-filter-card">
+      <h2>Filtrar por examen de origen</h2>
+      <div class="checkbox-list" id="setup-exam-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Modo de estudio</h2>
+      <div class="checkbox-list" style="margin-top:10px;">
+        <div class="mode-option selected" data-mode="practice" id="mode-practice">
+          <strong>🧠 Practicar</strong>
+          <span>Todas las preguntas filtradas, en orden aleatorio.</span>
+        </div>
+        <div class="mode-option" data-mode="review" id="mode-review">
+          <strong>🔁 Repaso de falladas</strong>
+          <span id="mode-review-desc">Solo preguntas falladas, priorizando las más falladas.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="setup-stats-card"></div>
+
+    <button class="btn btn-primary btn-block" id="btn-start-quiz">Empezar</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="screen" id="screen-quiz">
+    <div class="quiz-header">
+      <span id="quiz-progress-text">Pregunta 1/10</span>
+      <div class="score-pill">
+        <span class="ok" id="quiz-score-ok">✔ 0</span>
+        <span class="bad" id="quiz-score-bad">✘ 0</span>
+        <span id="quiz-score-pct">0%</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-bar-fill" id="quiz-progress-fill" style="width:0%"></div></div>
+
+    <div class="question-card">
+      <span class="q-tag" id="quiz-question-tag">AANS · PreguntasAANS</span>
+      <div id="quiz-question-text"></div>
+    </div>
+
+    <div class="options" id="quiz-options"></div>
+
+    <div class="feedback" id="quiz-feedback" style="display:none;"></div>
+
+    <button class="btn btn-primary btn-block" id="btn-next-question" style="display:none;">Siguiente →</button>
+    <button class="back-link" data-nav="home" style="align-self:center;">Salir al inicio</button>
+  </div>
+
+  <!-- END -->
+  <div class="screen" id="screen-end">
+    <h1>🏁 Resultado</h1>
+    <div class="card" id="end-summary"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary btn-block" id="btn-end-repeat">Repetir</button>
+      <button class="btn btn-primary btn-block" id="btn-end-home">Volver al inicio</button>
+    </div>
+  </div>
+
+  <!-- MANAGE STATS -->
+  <div class="screen" id="screen-manage">
+    <button class="back-link" data-nav="home">← Volver</button>
+    <h1>⚙️ Estadísticas</h1>
+    <div id="manage-content" style="display:flex;flex-direction:column;gap:14px;"></div>
+    <button class="btn btn-danger btn-block" id="btn-reset-all">Reiniciar TODAS las estadísticas</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SUBJECTS = ["AANS","RNAP"];
+  var DOMINATE_THRESHOLD = 3; // aciertos consecutivos para considerar dominada
+  var STORAGE_KEY = "examStudyStats_v1";
+
+  var subjectData = { AANS: [], RNAP: [] };
+  var stats = loadStats();
+
+  var setup = { subject: "AANS", mode: "practice", examFilter: null };
+  var quiz = { questions: [], index: 0, ok: 0, bad: 0, answered: false };
+
+  // ---------- persistence ----------
+  function loadStats(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return { AANS:{}, RNAP:{} };
+  }
+  function saveStats(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  }
+  var DEFAULT_QSTAT = { wrong:0, consecutiveCorrect:0, dominated:false, seen:0 };
+  function peekQStat(subject, id){
+    return (stats[subject] && stats[subject][id]) || DEFAULT_QSTAT;
+  }
+  function getOrCreateQStat(subject, id){
+    if(!stats[subject]) stats[subject] = {};
+    if(!stats[subject][id]) stats[subject][id] = { wrong:0, consecutiveCorrect:0, dominated:false, seen:0 };
+    return stats[subject][id];
+  }
+  function recordAnswer(subject, id, correct){
+    var s = getOrCreateQStat(subject, id);
+    s.seen++;
+    if(correct){
+      s.consecutiveCorrect++;
+      if(s.wrong > 0 && s.consecutiveCorrect >= DOMINATE_THRESHOLD) s.dominated = true;
+    } else {
+      s.wrong++;
+      s.consecutiveCorrect = 0;
+      s.dominated = false;
+    }
+    saveStats();
+  }
+  function resetStats(subject){
+    if(subject === "all"){
+      stats = { AANS:{}, RNAP:{} };
+    } else {
+      stats[subject] = {};
+    }
+    saveStats();
+  }
+
+  // ---------- data loading ----------
+  function loadData(){
+    return Promise.all([
+      fetch("data/aans.json").then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }),
+      fetch("data/rnap.json").then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; })
+    ]).then(function(results){
+      subjectData.AANS = results[0] || [];
+      subjectData.RNAP = results[1] || [];
+    });
+  }
+
+  // ---------- helpers ----------
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1; i>0; i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp=a[i]; a[i]=a[j]; a[j]=tmp;
+    }
+    return a;
+  }
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function getExamsFor(subject){
+    var set = {};
+    subjectData[subject].forEach(function(q){ set[q.exam] = true; });
+    return Object.keys(set).sort();
+  }
+  function questionsFor(subject, examFilter){
+    return subjectData[subject].filter(function(q){
+      return !examFilter || examFilter.length === 0 || examFilter.indexOf(q.exam) !== -1;
+    });
+  }
+  function reviewPoolFor(subject, examFilter){
+    var qs = questionsFor(subject, examFilter);
+    return qs.filter(function(q){
+      var s = peekQStat(subject, q.id);
+      return s.wrong > 0 && !s.dominated;
+    }).sort(function(a,b){
+      return peekQStat(subject,b.id).wrong - peekQStat(subject,a.id).wrong;
+    });
+  }
+  function dominatedCountFor(subject, examFilter){
+    var qs = questionsFor(subject, examFilter);
+    return qs.filter(function(q){ return peekQStat(subject,q.id).dominated; }).length;
+  }
+
+  function buildRuntimeQuestion(subject, q){
+    var letters = ["A","B","C","D"];
+    var optionObjs = q.options.map(function(text, idx){ return { text: text, isCorrect: idx === q.correct }; });
+    var shuffled = shuffle(optionObjs);
+    return {
+      subject: subject,
+      id: q.id,
+      exam: q.exam,
+      questionText: q.question,
+      options: shuffled
+    };
+  }
+
+  // ---------- navigation ----------
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(function(el){ el.classList.remove("active"); });
+    document.getElementById(id).classList.add("active");
+  }
+
+  function goHome(){
+    renderHome();
+    showScreen("screen-home");
+  }
+
+  // ---------- HOME screen ----------
+  function subjectLabel(key){
+    if(key === "AANS") return "AANS";
+    if(key === "RNAP") return "RNAP";
+    return key;
+  }
+
+  function renderHome(){
+    var grid = document.getElementById("home-subject-grid");
+    grid.innerHTML = "";
+
+    SUBJECTS.forEach(function(key){
+      var count = subjectData[key].length;
+      var btn = document.createElement("button");
+      btn.className = "subject-btn";
+      btn.innerHTML = "<span>" + subjectLabel(key) + "</span><small>" + count + " preguntas" + (count===0 ? " — próximamente" : "") + "</small>";
+      if(count === 0){ btn.disabled = true; }
+      else {
+        btn.addEventListener("click", function(){ openSetup(key); });
+      }
+      grid.appendChild(btn);
+    });
+
+    var mixedCount = subjectData.AANS.length + subjectData.RNAP.length;
+    var mixedBtn = document.createElement("button");
+    mixedBtn.className = "subject-btn";
+    mixedBtn.innerHTML = "<span>🔀 Mixto</span><small>" + mixedCount + " preguntas de todas las asignaturas mezcladas</small>";
+    if(mixedCount === 0){ mixedBtn.disabled = true; }
+    else { mixedBtn.addEventListener("click", function(){ openSetup("MIXED"); }); }
+    grid.appendChild(mixedBtn);
+
+    var summary = document.getElementById("home-stats-summary");
+    var rows = SUBJECTS.map(function(key){
+      var total = subjectData[key].length;
+      if(total === 0) return "";
+      var dominated = dominatedCountFor(key, null);
+      var pending = reviewPoolFor(key, null).length;
+      return '<div class="stats-row"><span>' + subjectLabel(key) + '</span><span><b>' + dominated + '</b>/' + total + ' dominadas · <b>' + pending + '</b> por repasar</span></div>';
+    }).join("");
+    summary.innerHTML = rows || '<div class="empty-state">Aún no hay preguntas cargadas.</div>';
+  }
+
+  document.getElementById("btn-goto-manage-stats").addEventListener("click", function(){
+    renderManageScreen();
+    showScreen("screen-manage");
+  });
+
+  // ---------- SETUP screen ----------
+  function openSetup(subjectKey){
+    setup.subject = subjectKey;
+    setup.mode = "practice";
+    setup.examFilter = null;
+
+    var isMixed = subjectKey === "MIXED";
+    document.getElementById("setup-title").textContent = isMixed ? "Modo Mixto" : subjectLabel(subjectKey);
+
+    var examCard = document.getElementById("setup-exam-filter-card");
+    var examList = document.getElementById("setup-exam-list");
+    examList.innerHTML = "";
+
+    if(isMixed){
+      examCard.style.display = "none";
+    } else {
+      var exams = getExamsFor(subjectKey);
+      if(exams.length <= 1){
+        examCard.style.display = "none";
+      } else {
+        examCard.style.display = "block";
+        exams.forEach(function(examName){
+          var row = document.createElement("div");
+          row.className = "checkbox-row";
+          var cbId = "exam-cb-" + examName;
+          row.innerHTML = '<input type="checkbox" id="'+cbId+'" checked><label for="'+cbId+'">'+escapeHtml(examName)+'</label>';
+          examList.appendChild(row);
+          row.querySelector("input").addEventListener("change", updateSetupStats);
+        });
+      }
+    }
+
+    document.getElementById("mode-practice").classList.add("selected");
+    document.getElementById("mode-review").classList.remove("selected");
+
+    updateSetupStats();
+    showScreen("screen-setup");
+  }
+
+  function currentExamFilterSelection(){
+    if(setup.subject === "MIXED") return null;
+    var checked = Array.prototype.slice.call(document.querySelectorAll("#setup-exam-list input:checked"))
+      .map(function(cb){ return cb.nextElementSibling.textContent; });
+    var all = getExamsFor(setup.subject);
+    if(checked.length === 0 || checked.length === all.length) return null;
+    return checked;
+  }
+
+  function subjectsInvolved(){
+    return setup.subject === "MIXED" ? SUBJECTS.slice() : [setup.subject];
+  }
+
+  function updateSetupStats(){
+    var examFilter = currentExamFilterSelection();
+    var subjects = subjectsInvolved();
+
+    var totalQ = 0, totalDominated = 0, totalReview = 0;
+    subjects.forEach(function(s){
+      var f = setup.subject === "MIXED" ? null : examFilter;
+      totalQ += questionsFor(s, f).length;
+      totalDominated += dominatedCountFor(s, f);
+      totalReview += reviewPoolFor(s, f).length;
+    });
+
+    var statsCard = document.getElementById("setup-stats-card");
+    statsCard.innerHTML =
+      '<div class="stats-row"><span>Preguntas disponibles</span><b>'+totalQ+'</b></div>' +
+      '<div class="stats-row"><span>Dominadas</span><b>'+totalDominated+'</b></div>' +
+      '<div class="stats-row"><span>Pendientes de repaso</span><b>'+totalReview+'</b></div>';
+
+    var reviewOption = document.getElementById("mode-review");
+    var reviewDesc = document.getElementById("mode-review-desc");
+    if(totalReview === 0){
+      reviewOption.classList.add("disabled");
+      reviewDesc.textContent = "No tienes preguntas falladas pendientes en esta selección. ¡Genial!";
+      if(setup.mode === "review"){ selectMode("practice"); }
+    } else {
+      reviewOption.classList.remove("disabled");
+      reviewDesc.textContent = totalReview + " pregunta(s) fallada(s) pendientes, priorizando las más falladas.";
+    }
+
+    document.getElementById("btn-start-quiz").disabled = totalQ === 0;
+  }
+
+  function selectMode(mode){
+    setup.mode = mode;
+    document.getElementById("mode-practice").classList.toggle("selected", mode==="practice");
+    document.getElementById("mode-review").classList.toggle("selected", mode==="review");
+  }
+  document.getElementById("mode-practice").addEventListener("click", function(){ selectMode("practice"); });
+  document.getElementById("mode-review").addEventListener("click", function(){
+    if(this.classList.contains("disabled")) return;
+    selectMode("review");
+  });
+
+  document.getElementById("btn-start-quiz").addEventListener("click", function(){
+    startQuiz();
+  });
+
+  // ---------- QUIZ ----------
+  function startQuiz(){
+    var examFilter = currentExamFilterSelection();
+    var subjects = subjectsInvolved();
+    var pool = [];
+
+    subjects.forEach(function(s){
+      var f = setup.subject === "MIXED" ? null : examFilter;
+      var qs = setup.mode === "review" ? reviewPoolFor(s, f) : questionsFor(s, f);
+      qs.forEach(function(q){ pool.push({ subject: s, q: q }); });
+    });
+
+    if(pool.length === 0) return;
+
+    var ordered;
+    if(setup.mode === "review"){
+      // ya viene ordenado por nº de fallos desc (por asignatura); si es mixto, mezclamos manteniendo prioridad aproximada
+      ordered = subjects.length > 1 ? shuffle(pool) : pool;
+    } else {
+      ordered = shuffle(pool);
+    }
+
+    quiz.questions = ordered.map(function(item){ return buildRuntimeQuestion(item.subject, item.q); });
+    quiz.index = 0;
+    quiz.ok = 0;
+    quiz.bad = 0;
+    quiz.answered = false;
+
+    showScreen("screen-quiz");
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    var total = quiz.questions.length;
+    var current = quiz.questions[quiz.index];
+    quiz.answered = false;
+
+    document.getElementById("quiz-progress-text").textContent = "Pregunta " + (quiz.index+1) + "/" + total;
+    document.getElementById("quiz-progress-fill").style.width = Math.round(((quiz.index)/total)*100) + "%";
+    document.getElementById("quiz-question-tag").textContent = current.subject + " · " + current.exam;
+
+    updateScorePill();
+
+    var qTextEl = document.getElementById("quiz-question-text");
+    var parts = current.questionText.split("\n\n");
+    var prompt = parts[0];
+    var rest = parts.slice(1).join("\n\n");
+    var html = '<p class="q-prompt">' + escapeHtml(prompt) + '</p>';
+    if(rest){ html += '<pre class="q-code">' + escapeHtml(rest) + '</pre>'; }
+    qTextEl.innerHTML = html;
+
+    var optionsEl = document.getElementById("quiz-options");
+    optionsEl.innerHTML = "";
+    var letters = ["A","B","C","D"];
+    current.options.forEach(function(opt, idx){
+      var btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = '<span class="option-letter">'+letters[idx]+'</span><span>'+escapeHtml(opt.text)+'</span>';
+      btn.addEventListener("click", function(){ handleAnswer(opt, btn); });
+      optionsEl.appendChild(btn);
+    });
+
+    document.getElementById("quiz-feedback").style.display = "none";
+    document.getElementById("btn-next-question").style.display = "none";
+  }
+
+  function updateScorePill(){
+    document.getElementById("quiz-score-ok").textContent = "✔ " + quiz.ok;
+    document.getElementById("quiz-score-bad").textContent = "✘ " + quiz.bad;
+    var totalAnswered = quiz.ok + quiz.bad;
+    var pct = totalAnswered === 0 ? 0 : Math.round((quiz.ok/totalAnswered)*100);
+    document.getElementById("quiz-score-pct").textContent = pct + "%";
+  }
+
+  function handleAnswer(selectedOpt, btnEl){
+    if(quiz.answered) return;
+    quiz.answered = true;
+
+    var current = quiz.questions[quiz.index];
+    var correct = selectedOpt.isCorrect;
+
+    if(correct){ quiz.ok++; } else { quiz.bad++; }
+    recordAnswer(current.subject, current.id, correct);
+    updateScorePill();
+
+    var allBtns = document.querySelectorAll("#quiz-options .option-btn");
+    allBtns.forEach(function(b, idx){
+      b.classList.add("disabled");
+      if(current.options[idx].isCorrect){ b.classList.add("correct"); }
+      else if(b === btnEl){ b.classList.add("incorrect"); }
+    });
+
+    var fb = document.getElementById("quiz-feedback");
+    fb.style.display = "flex";
+    if(correct){
+      fb.className = "feedback correct";
+      fb.textContent = "✔ ¡Correcto!";
+    } else {
+      var correctText = current.options.filter(function(o){ return o.isCorrect; })[0].text;
+      fb.className = "feedback incorrect";
+      fb.textContent = "✘ Incorrecto. La respuesta correcta era: " + correctText;
+    }
+
+    document.getElementById("btn-next-question").style.display = "flex";
+  }
+
+  document.getElementById("btn-next-question").addEventListener("click", function(){
+    quiz.index++;
+    if(quiz.index >= quiz.questions.length){
+      renderEnd();
+      showScreen("screen-end");
+    } else {
+      renderQuestion();
+    }
+  });
+
+  // ---------- END screen ----------
+  function renderEnd(){
+    var total = quiz.ok + quiz.bad;
+    var pct = total === 0 ? 0 : Math.round((quiz.ok/total)*100);
+    document.getElementById("end-summary").innerHTML =
+      '<div class="stats-row"><span>Preguntas respondidas</span><b>'+total+'</b></div>' +
+      '<div class="stats-row"><span>Aciertos</span><b class="ok" style="color:var(--success)">'+quiz.ok+'</b></div>' +
+      '<div class="stats-row"><span>Fallos</span><b style="color:var(--danger)">'+quiz.bad+'</b></div>' +
+      '<div class="stats-row"><span>Porcentaje de acierto</span><b>'+pct+'%</b></div>';
+  }
+
+  document.getElementById("btn-end-repeat").addEventListener("click", function(){ startQuiz(); });
+  document.getElementById("btn-end-home").addEventListener("click", function(){ goHome(); });
+
+  // ---------- MANAGE STATS screen ----------
+  function renderManageScreen(){
+    var content = document.getElementById("manage-content");
+    content.innerHTML = "";
+    SUBJECTS.forEach(function(key){
+      var total = subjectData[key].length;
+      var dominated = dominatedCountFor(key, null);
+      var pending = reviewPoolFor(key, null).length;
+      var card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML =
+        '<h2>' + subjectLabel(key) + '</h2>' +
+        '<div class="stats-row"><span>Total preguntas</span><b>'+total+'</b></div>' +
+        '<div class="stats-row"><span>Dominadas</span><b>'+dominated+'</b></div>' +
+        '<div class="stats-row"><span>Pendientes de repaso</span><b>'+pending+'</b></div>' +
+        '<button class="btn btn-danger btn-block" style="margin-top:10px;" data-reset-subject="'+key+'">Reiniciar estadísticas de '+subjectLabel(key)+'</button>';
+      content.appendChild(card);
+    });
+
+    content.querySelectorAll("[data-reset-subject]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var subject = btn.getAttribute("data-reset-subject");
+        if(confirm("¿Seguro que quieres borrar el progreso de " + subjectLabel(subject) + "? Esta acción no se puede deshacer.")){
+          resetStats(subject);
+          renderManageScreen();
+          renderHome();
+        }
+      });
+    });
+  }
+
+  document.getElementById("btn-reset-all").addEventListener("click", function(){
+    if(confirm("¿Seguro que quieres borrar TODAS las estadísticas de todas las asignaturas? Esta acción no se puede deshacer.")){
+      resetStats("all");
+      renderManageScreen();
+      renderHome();
+    }
+  });
+
+  // back links
+  document.querySelectorAll("[data-nav='home']").forEach(function(el){
+    el.addEventListener("click", goHome);
+  });
+
+  // ---------- init ----------
+  loadData().then(function(){
+    renderHome();
+  });
+
+})();
+</script>
+</body>
+</html>
